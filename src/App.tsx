@@ -58,6 +58,7 @@ function App() {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         
         // 创建ethers provider和signer
+      
         const ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
         const ethersSigner = ethersProvider.getSigner();
         
@@ -79,65 +80,54 @@ function App() {
   };
 
   // 方式1: 转账方式上链
-  const transferMethod = async () => {
-    if (!signer || !account) {
-      message.error('请先连接钱包');
-      return;
-    }
+const transferMethod = async () => {
+  if (!signer || !account) {
+    message.error('请先连接钱包');
+    return;
+  }
 
-    setLoading(true);
-    try {
-      // 使用ethers.js将文本转换为字节数据
-      const dataBytes = ethers.utils.toUtf8Bytes(transferData);
-      const hexData = ethers.utils.hexlify(dataBytes);
-      
-      // 构建交易
-      const tx = {
-        to: targetAddress || account, // 如果没有指定地址就转给自己
-        value: ethers.utils.parseEther(transferAmount),
-        data: hexData,
-        gasLimit: 21000 + dataBytes.length * 68 // 动态计算gas限制
-      };
+  if (!targetAddress.trim()) {
+    message.error('必须输入目标地址');
+    return;
+  }
 
-      // 发送交易
-      const transaction = await signer.sendTransaction(tx);
-      const receipt = await transaction.wait();
-      
-      message.success({
-        content: (
-          <div>
-            <div>转账方式上链成功！</div>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              交易哈希: {receipt.transactionHash}
-            </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              区块号: {receipt.blockNumber}
-            </div>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              Gas使用: {receipt.gasUsed.toString()}
-            </div>
-          </div>
-        ),
-        duration: 8
-      });
-      
-      setTransferData('');
-    } catch (error) {
-      message.error('转账上链失败: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  setLoading(true);
+  try {
+    const dataBytes = ethers.utils.toUtf8Bytes(transferData);
+    const hexData = ethers.utils.hexlify(dataBytes);
+    console.log(dataBytes,hexData,'datatat')
+    
+    // 简化的交易对象，让MetaMask自己估算gas
+    const tx = {
+      to: targetAddress,
+      value: ethers.utils.parseEther(transferAmount),
+      data: hexData
+      // 不设置gasLimit，让MetaMask自动估算
+    };
 
+    console.log('发送交易:', tx);
+    const transaction = await signer.sendTransaction(tx);
+    const receipt = await transaction.wait();
+    
+    message.success('上链成功!');
+    setTransferData('');
+  } catch (error) {
+    console.error('错误详情:', error);
+    message.error('上链失败: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
   // 方式2: 使用Infura读取链上数据
   const readChainData = async () => {
     setLoading(true);
     try {
       // 使用Infura provider (替换为你的Infura Project ID)
-      const infuraProvider = new ethers.providers.InfuraProvider('mainnet', 'YOUR_INFURA_PROJECT_ID');
+      const infuraProvider = new ethers.providers.JsonRpcProvider('https://carrot.megaeth.com/rpc')
       
       if (searchHash.startsWith('0x') && searchHash.length === 66) {
         // 查询交易
+        console.log(searchHash,'hash')
         const tx = await infuraProvider.getTransaction(searchHash);
         const receipt = await infuraProvider.getTransactionReceipt(searchHash);
         
@@ -274,7 +264,7 @@ function App() {
 
     try {
       // 创建只读合约实例
-      const infuraProvider = new ethers.providers.InfuraProvider('mainnet', 'YOUR_INFURA_PROJECT_ID');
+      const infuraProvider = new ethers.providers.JsonRpcProvider('https://carrot.megaeth.com/rpc');
       const contract = new ethers.Contract(contractAddress, DATA_STORAGE_ABI, infuraProvider);
       
       // 读取数据
@@ -286,7 +276,7 @@ function App() {
   };
 
   return (
-    <div style={{ 
+ <div style={{ 
       minHeight: '100vh', 
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       padding: '20px'

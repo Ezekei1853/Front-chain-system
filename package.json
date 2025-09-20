@@ -1,7 +1,7 @@
 {
   "name": "Front-chain-system",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "public/index.html",
   "repository": "git@github.com:Ezekei1853/Front-chain-system.git",
   "author": "Ezekei1853 <77326297+Ezekei1853@users.noreply.github.com>",
   "license": "MIT",
@@ -11,7 +11,7 @@
     "@vitejs/plugin-react": "^5.0.2",
     "antd": "^5.27.4",
     "ether": "^0.0.9",
-    "ethers": "^6.15.0",
+    "ethers": "5.7.2",
     "lucide-react": "^0.544.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -28,7 +28,7 @@
     "typescript": "^5.9.2",
     "vite": "^7.1.5"
   },
-    "scripts": {
+  "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
