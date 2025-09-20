@@ -7,6 +7,90 @@ const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
 const { TextArea } = Input;
 const { TabPane } = Tabs;
+interface NetworkInfo {
+  chainId: number;
+  name?: string;
+  isSepolia: boolean;
+  isMainnet: boolean;
+  blockNumber: number;
+  error?: boolean;
+  message?: string;
+}
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: any[] }) => Promise<any>;
+      isMetaMask?: boolean;
+      chainId?: string;
+      selectedAddress?: string;
+      on?: (event: string, handler: (...args: any[]) => void) => void;
+      removeListener?: (event: string, handler: (...args: any[]) => void) => void;
+    };
+  }
+}
+
+interface BlockDetails {
+  miner: string;
+  gasUsed: string;
+  gasLimit: string;
+  transactionCount: number;
+  difficulty: string;
+}
+interface errorTypes{
+    message: string;
+}
+interface TransferInfo {
+  transactionHash: string;
+  fromAddress: string;
+  toAddress: string | null;
+  transferAmount: string;
+  transferAmountWei: string;
+  blockNumber: number | null;
+  blockHash: string | null;
+  blockTimestamp: string;
+  gasLimit: string;
+  gasPrice: string;
+  gasUsed: string;
+  status: string;
+  confirmations: number;
+  transactionIndex: number | null;
+  nonce: number;
+  transactionFee: string;
+  hasData: boolean;
+  dataSize: number;
+  rawData: string;
+  decodedData?: string;
+  dataType?: string;
+  functionSelector?: string;
+  blockDetails?: BlockDetails;
+}
+
+interface SearchResult {
+  type: 'transaction' | 'address';
+  networkInfo?: NetworkInfo;
+  // Transaction fields
+  transactionHash?: string;
+  fromAddress?: string;
+  toAddress?: string | null;
+  transferAmount?: string;
+  blockNumber?: number | null;
+  gasUsed?: string;
+  status?: string;
+  hash?:string;
+  // Address fields
+ 
+  address?: string;
+  balance?: string;
+  transactionCount?: number;
+  contractCode?: string;
+}
+
+interface ProviderInfo {
+  name: string;
+  url: string;
+  priority: number;
+}
+
 
 // USDT合约地址 (以太坊主网)
 const USDT_CONTRACT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
@@ -30,8 +114,8 @@ const DATA_STORAGE_ABI = [
 ];
 
 function App() {
-  const [provider, setProvider] = useState(null);
-  const [signer, setSigner] = useState(null);
+  const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
+  const [signer, setSigner] = useState<ethers.providers.JsonRpcSigner | null>(null);
   const [account, setAccount] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('1');
@@ -43,7 +127,7 @@ function App() {
   
   // 方式2: 读取链上数据状态
   const [searchHash, setSearchHash] = useState('');
-  const [searchResult, setSearchResult] = useState(null);
+  const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
   
   // 方式3: 合约方式状态
   const [contractData, setContractData] = useState('');
@@ -111,7 +195,7 @@ const transferMethod = async () => {
     
     message.success('上链成功!');
     setTransferData('');
-  } catch (error) {
+  } catch (error:any) {
     console.error('错误详情:', error);
     message.error('上链失败: ' + error.message);
   } finally {
@@ -145,7 +229,7 @@ const transferMethod = async () => {
          return error
        }
    }
-   const getTranstionDetail = async (provider:any,transactionHash:string) =>{ 
+   const getTranstionDetail = async (provider:any,transactionHash:string): Promise<TransferInfo>  =>{ 
     console.log(provider,'___[rovider')
    
     const tx = await provider.getTransaction(transactionHash)
@@ -159,12 +243,12 @@ const transferMethod = async () => {
       try {
         blockInfo = await provider.getBlock(tx.blockNumber);
        
-      } catch (blockError) {
+      } catch (blockError:any) {
         console.warn('获取区块信息失败:', blockError.message);
       }
     }
     console.log(tx.to,receipt,'__+++++=')
-       const transferInfo = {
+       const transferInfo:TransferInfo = {
       // === 核心转账信息 ===
       transactionHash: tx.hash,
       fromAddress: tx.from,           // 从哪里转的
@@ -273,7 +357,7 @@ const transferMethod = async () => {
       // 使用Infura provider (替换为你的Infura Project ID)
 
       console.log()
-       const networkInfo = await detectSepoliaNetwork(provider);
+       const networkInfo:any = await detectSepoliaNetwork(provider);
        if(searchHash.startsWith('0x')&&searchHash.length===66){
         message.loading({
         content: '🔍 正在查询转账详情...',
