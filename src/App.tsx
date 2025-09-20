@@ -681,41 +681,7 @@ const transferMethod = async () => {
             </TabPane>
           </Tabs>
 
-          {/* 使用说明 */}
-          <Card title="Ethers.js实现说明" style={{ marginTop: '24px', backgroundColor: '#f0f8ff' }}>
-            <Space direction="vertical" size="middle">
-              <div>
-                <Text strong>1. 转账方式:</Text>
-                <Paragraph style={{ marginLeft: '16px', marginBottom: '8px' }}>
-                  使用ethers.utils.toUtf8Bytes()将数据转换为字节，然后通过ethers.utils.hexlify()编码为16进制。
-                  数据存储在交易的data字段中，永久保存在区块链上。
-                </Paragraph>
-              </div>
-              
-              <div>
-                <Text strong>2. 读取方式:</Text>
-                <Paragraph style={{ marginLeft: '16px', marginBottom: '8px' }}>
-                  使用ethers.providers.InfuraProvider连接Infura节点，通过getTransaction()和getTransactionReceipt()
-                  获取交易详情，使用ethers.utils.toUtf8String()解码数据。
-                </Paragraph>
-              </div>
-              
-              <div>
-                <Text strong>3. 合约方式:</Text>
-                <Paragraph style={{ marginLeft: '16px', marginBottom: '0' }}>
-                  使用ethers.Contract与智能合约交互，通过ethers.utils.keccak256()生成数据哈希。
-                  支持estimateGas()估算gas费用，提供更精确的交易控制。
-                </Paragraph>
-              </div>
-              
-              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#fffbe6', borderRadius: '6px' }}>
-                <Text strong style={{ color: '#d46b08' }}>重要提示:</Text>
-                <Text style={{ marginLeft: '8px' }}>
-                  请将代码中的 'YOUR_INFURA_PROJECT_ID' 替换为你的真实Infura项目ID
-                </Text>
-              </div>
-            </Space>
-          </Card>
+      
 
         </Card>
       </div>
