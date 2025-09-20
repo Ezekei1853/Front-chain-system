@@ -118,71 +118,180 @@ const transferMethod = async () => {
     setLoading(false);
   }
 };
+ const detectSepoliaNetwork = async (provider:any) =>{
+       try{
+        debugger
+         const network = await provider.getNetwork();
+         const blockNumber = await provider.getBlockNumber();
+         debugger
+         console.log('当前网络:', network.name, '块高:', blockNumber);
+         const networkInfo = {
+          chainId:network.chainId,
+          isSepolia:network.chainId === 11155111,
+          isMainnet:network.chainId === 1,
+          //当前区块number
+          blockNumber:blockNumber
+         }
+         if(network.chainId===11155111){
+           message.success('连接到sepolina测试网')
+         }else if(network.chainId===1){
+          message.success('连接到主网')
+         }else{
+          message.error('找不到连接网络')
+         }
+         return networkInfo
+
+       }catch(error){
+         return error
+       }
+   }
+   const getTranstionDetail = async (provider:any,transactionHash:string) =>{ 
+    console.log(provider,'___[rovider')
+   
+    const tx = await provider.getTransaction(transactionHash)
+    const receipt = await provider.getTransactionReceipt(transactionHash)
+    console.log(tx,'___txtx')
+    if(!tx){
+       message.error('没有查找到该数据')
+    }
+      let blockInfo = null;
+    if (tx.blockNumber) {
+      try {
+        blockInfo = await provider.getBlock(tx.blockNumber);
+       
+      } catch (blockError) {
+        console.warn('获取区块信息失败:', blockError.message);
+      }
+    }
+    console.log(tx.to,receipt,'__+++++=')
+       const transferInfo = {
+      // === 核心转账信息 ===
+      transactionHash: tx.hash,
+      fromAddress: tx.from,           // 从哪里转的
+      toAddress: tx.to,               // 转给谁了  
+      transferAmount: ethers.utils.formatEther(tx.value || 0), // 转了多少 ETH
+      transferAmountWei: tx.value?.toString() || '0',          // Wei 单位
+      
+      // === 区块信息 ===
+      blockNumber: tx.blockNumber,    // 区块高度
+      blockHash: tx.blockHash,
+      blockTimestamp: blockInfo ? 
+        new Date(blockInfo.timestamp * 1000).toLocaleString('zh-CN') : 'Unknown',
+      
+      // === Gas 费用信息 ===
+      gasLimit: tx.gasLimit?.toString(),
+      gasPrice: tx.gasPrice ? 
+        ethers.utils.formatUnits(tx.gasPrice, 'gwei') + ' Gwei' : 'Unknown',
+      gasUsed: receipt ? receipt.gasUsed.toString() : 'Pending',
+      
+      // === 交易状态 ===
+      status: receipt ? 
+        (receipt.status === 1 ? '✅ 成功' : '❌ 失败') : '⏳ 待确认',
+      confirmations: tx.confirmations || 0,
+      transactionIndex: tx.transactionIndex,
+      nonce: tx.nonce,
+      
+      // === 计算交易费用 ===
+      transactionFee: receipt && tx.gasPrice ? 
+        ethers.utils.formatEther(receipt.gasUsed.mul(tx.gasPrice)) : '0',
+      
+      // === 数据字段解析 ===
+      hasData: tx.data && tx.data !== '0x',
+      dataSize: tx.data ? (tx.data.length - 2) / 2 : 0,
+      rawData: tx.data || '0x'
+    };
+    
+ console.log(transferInfo,'__ifnooooo')
+    return transferInfo
+   }
   // 方式2: 使用Infura读取链上数据
   const readChainData = async () => {
     setLoading(true);
-    try {
-      // 使用Infura provider (替换为你的Infura Project ID)
-      const infuraProvider = new ethers.providers.JsonRpcProvider('https://carrot.megaeth.com/rpc')
-      
-      if (searchHash.startsWith('0x') && searchHash.length === 66) {
-        // 查询交易
-        console.log(searchHash,'hash')
-        const tx = await infuraProvider.getTransaction(searchHash);
-        const receipt = await infuraProvider.getTransactionReceipt(searchHash);
+  
+  
+    try { 
+      if(!searchHash){
+         message.error('请查询')
+       }
+       let provider
+        const providers = [
+        {
+          name: "Alchemy Sepolia",
+          url: "https://eth-sepolia.g.alchemy.com/v2/demo",
+          priority: 1,
+        },
+        {
+          name: "Ankr Sepolia",
+          url: "https://rpc.ankr.com/eth_sepolia",
+          priority: 2,
+        },
+        {
+          name: "PublicNode Sepolia",
+          url: "https://ethereum-sepolia-rpc.publicnode.com",
+          priority: 3,
+        },
+        {
+          name: "BlockPI Sepolia",
+          url: "https://ethereum-sepolia.blockpi.network/v1/rpc/public",
+          priority: 4,
+        },
+        // 🔥 备用选项 - 可能有 CORS 问题
+        {
+          name: "Sepolia RPC",
+          url: "https://rpc.sepolia.org",
+          priority: 5,
+        },
+      ];
+       
+       for (const providerInfo of providers) {
+        try {
+           const infuraProvider = new ethers.providers.JsonRpcProvider(providerInfo.url)
+          
+          const netWork = infuraProvider.getNetwork(); //创建连接，
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error("超时"));
+            }, 5000); //超时器
+          });
+
+          await Promise.race([netWork, timeoutPromise]); //做竞赛，谁完成就用谁的结果
         
-        if (tx && tx.data && tx.data !== '0x') {
-          try {
-            // 使用ethers.js解码数据
-            const decodedData = ethers.utils.toUtf8String(tx.data);
-            setSearchResult({
-              type: 'transaction',
-              hash: searchHash,
-              data: decodedData,
-              from: tx.from,
-              to: tx.to,
-              value: ethers.utils.formatEther(tx.value || 0),
-              blockNumber: tx.blockNumber,
-              gasUsed: receipt ? receipt.gasUsed.toString() : 'N/A',
-              status: receipt ? (receipt.status === 1 ? '成功' : '失败') : 'N/A'
-            });
-            message.success('数据读取成功！');
-          } catch (decodeError) {
-            setSearchResult({
-              type: 'transaction',
-              hash: searchHash,
-              data: '无法解码的数据: ' + tx.data,
-              from: tx.from,
-              to: tx.to,
-              value: ethers.utils.formatEther(tx.value || 0),
-              blockNumber: tx.blockNumber,
-              gasUsed: receipt ? receipt.gasUsed.toString() : 'N/A',
-              status: receipt ? (receipt.status === 1 ? '成功' : '失败') : 'N/A'
-            });
-            message.warning('数据解码失败，但交易信息已获取');
-          }
-        } else {
-          message.warning('该交易不包含数据');
+          provider = infuraProvider; //保存可用的providr,用户rpc连接
+          console.log(provider, "__provider");
+          break;
+
+          ; //设置界面渲染点信息
+        } catch (error) {
+          continue;
         }
-      } else if (searchHash.length === 42 && searchHash.startsWith('0x')) {
-        // 查询地址
-        const balance = await infuraProvider.getBalance(searchHash);
-        const txCount = await infuraProvider.getTransactionCount(searchHash);
-        const code = await infuraProvider.getCode(searchHash);
-        const isContract = code !== '0x';
-        
-        setSearchResult({
-          type: 'address',
-          address: searchHash,
-          balance: ethers.utils.formatEther(balance),
-          transactionCount: txCount,
-          isContract: isContract,
-          contractCode: isContract ? '这是一个智能合约地址' : '这是一个普通地址'
-        });
-        message.success('地址信息读取成功！');
-      } else {
-        message.error('请输入有效的交易哈希(66字符)或地址(42字符)');
       }
+      if (!provider) {
+        throw new Error(
+          "❌ 无法连接到任何 RPC 节点。请检查网络连接或尝试使用 VPN。"
+        );
+      }
+      // 使用Infura provider (替换为你的Infura Project ID)
+
+      console.log()
+       const networkInfo = await detectSepoliaNetwork(provider);
+       if(searchHash.startsWith('0x')&&searchHash.length===66){
+        message.loading({
+        content: '🔍 正在查询转账详情...',
+        key: 'transfer-query',
+        duration: 0
+      });
+     
+        const transferDetails = await getTranstionDetail(provider, searchHash);
+         setSearchResult({
+          type: 'transaction',
+          networkInfo,
+          ...transferDetails
+        });
+      
+       }
+    
+        
+      console.log(networkInfo,'__')
     } catch (error) {
       message.error('读取失败: ' + error.message);
       console.error(error);
@@ -401,15 +510,14 @@ const transferMethod = async () => {
                       <Space direction="vertical" size="small" style={{ width: '100%' }}>
                         <Text><strong>类型:</strong> 交易数据</Text>
                         <Text><strong>哈希:</strong> {searchResult.hash}</Text>
-                        <Text><strong>发送方:</strong> {searchResult.from}</Text>
-                        <Text><strong>接收方:</strong> {searchResult.to}</Text>
-                        <Text><strong>金额:</strong> {searchResult.value} ETH</Text>
+                        <Text><strong>发送方:</strong> {searchResult.fromAddress}</Text>
+                        <Text><strong>接收方:</strong> {searchResult.toAddress}</Text>
+                        <Text><strong>金额:</strong> {searchResult.transferAmount} ETH</Text>
                         <Text><strong>区块:</strong> {searchResult.blockNumber}</Text>
                         <Text><strong>Gas使用:</strong> {searchResult.gasUsed}</Text>
                         <Text><strong>状态:</strong> {searchResult.status}</Text>
                         <Divider />
-                        <Text><strong>数据内容:</strong></Text>
-                        <TextArea value={searchResult.data} readOnly rows={3} />
+                        
                       </Space>
                     ) : (
                       <Space direction="vertical" size="small">
