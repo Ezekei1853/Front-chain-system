@@ -577,6 +577,7 @@ function App() {
       }}
     >
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
+        
         <Card
           style={{
             borderRadius: "16px",
